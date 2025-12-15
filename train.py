@@ -12,7 +12,7 @@ import numpy as np
 
 from tts.model.tacotron import Tacotron
 from tts.audio.mel import MelProcessor
-from tts.dataset import get_dataloader
+from dataset import get_dataloader
 from tts.text.symbols import symbols
 
 class TacotronLoss(nn.Module):
