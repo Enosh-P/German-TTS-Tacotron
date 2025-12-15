@@ -1,0 +1,65 @@
+# Configuration for German Tacotron TTS
+
+# Data paths
+data:
+  raw_dir: "data/raw/"
+  processed_dir: "data/processed"
+  mel_dir: "data/processed/mels"
+  train_metadata: "data/processed/train_metadata.csv"
+  val_metadata: "data/processed/val_metadata.csv"
+  test_split: 0.1  # 10% for validation
+
+# Audio processing
+audio:
+  sample_rate: 22050
+  n_fft: 1024
+  hop_length: 256
+  win_length: 1024
+  n_mels: 80
+  fmin: 0
+  fmax: 8000
+  ref_level_db: 20
+  min_level_db: -100
+
+# Model architecture
+model:
+  # Encoder
+  embedding_dim: 512
+  encoder_conv_layers: 3
+  encoder_conv_kernel_size: 5
+  encoder_conv_channels: 512
+  encoder_lstm_hidden: 256
+  
+  # Decoder
+  decoder_dim: 1024
+  attention_dim: 128
+  prenet_dim: 256
+  
+  # Postnet
+  postnet_dim: 512
+  postnet_layers: 5
+  postnet_kernel_size: 5
+  
+  # General
+  n_mels: 80
+  dropout: 0.5
+  reduction_factor: 2  # Generate 2 frames per decoder step
+
+# Training parameters
+training:
+  batch_size: 32
+  epochs: 500
+  learning_rate: 0.001
+  lr_step: 100  # Reduce LR every 100 epochs
+  num_workers: 4
+  grad_clip: 1.0
+  
+  # Logging
+  log_interval: 10
+  checkpoint_interval: 10
+  sample_interval: 50  # Generate samples every N epochs
+
+# Inference
+inference:
+  max_decoder_steps: 1000
+  gate_threshold: 0.5
