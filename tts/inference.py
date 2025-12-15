@@ -91,7 +91,7 @@ class TTSInference:
         os.makedirs(output_dir, exist_ok=True)
         
         for i, text in enumerate(texts):
-            output_path = os.path.join(output_dir, f'output_{i+1}.wav')
+            output_path = os.path.join(output_dir, f'output_{i+1}.wav').replace("\\", "/")
             self.synthesize(text, output_path)
 
 def main():

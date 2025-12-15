@@ -16,7 +16,7 @@ def load_dataset_metadata(dataset_dir):
     Load CSS10 German dataset metadata
     CSS10 format: transcript.txt with lines like "filename|text"
     """
-    transcript_path = os.path.join(dataset_dir, 'transcript.txt')
+    transcript_path = os.path.join(dataset_dir, 'transcript.txt').replace("\\", "/")
     
     samples = []
     with open(transcript_path, 'r', encoding='utf-8') as f:
@@ -27,7 +27,7 @@ def load_dataset_metadata(dataset_dir):
                 text = parts[1]
                 
                 # Get full audio path
-                audio_path = os.path.join(dataset_dir, filename)
+                audio_path = os.path.join(dataset_dir, filename).replace("\\", "/")
                 
                 if os.path.exists(audio_path):
                     samples.append({
@@ -56,9 +56,9 @@ def process_samples(samples, mel_processor, output_mel_dir):
             # Convert to mel
             mel = mel_processor.wav_to_mel(wav)
             
-            filename = sample['filename'].replace('.wav', '')
+            filename = sample['filename'].split('/')[-1].replace('.wav', '')
             # Save mel spectrogram
-            mel_path = os.path.join(output_mel_dir, f"{filename}.npy")
+            mel_path = os.path.join(output_mel_dir, f"{filename}.npy").replace("\\", "/")
             np.save(mel_path, mel)
             
             processed.append({
@@ -93,8 +93,8 @@ def create_metadata_splits(samples, output_dir, test_split=0.1):
     print(f"Val samples: {len(val_samples)}")
     
     # Save metadata
-    train_path = os.path.join(output_dir, 'train_metadata.csv')
-    val_path = os.path.join(output_dir, 'val_metadata.csv')
+    train_path = os.path.join(output_dir, 'train_metadata.csv').replace("\\", "/")
+    val_path = os.path.join(output_dir, 'val_metadata.csv').replace("\\", "/")
     
     with open(train_path, 'w', encoding='utf-8') as f:
         for sample in train_samples:
