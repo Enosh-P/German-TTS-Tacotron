@@ -38,7 +38,7 @@ class TTSDataset(Dataset):
         filename, text = self.samples[idx]
         
         # Load mel spectrogram
-        mel_path = os.path.join(self.mel_dir, f"{filename}.npy").replace("\\", "/")
+        mel_path = os.path.join(self.mel_dir, f"{filename}.npy")
         mel = np.load(mel_path)
         
         # Convert text to sequence
@@ -107,4 +107,3 @@ def get_dataloader(metadata_path, mel_dir, mel_processor, batch_size=32,
     )
     
     return dataloader
-

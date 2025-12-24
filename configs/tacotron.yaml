@@ -47,7 +47,7 @@ model:
 
 # Training parameters
 training:
-  batch_size: 32
+  batch_size: 64
   epochs: 500
   learning_rate: 0.001
   lr_step: 100  # Reduce LR every 100 epochs
@@ -62,4 +62,9 @@ training:
 # Inference
 inference:
   max_decoder_steps: 1000
-  gate_threshold: 0.5
+  stop_threshold: 0.5  # Stop token probability threshold
+  
+# HiFi-GAN vocoder (optional - for high quality)
+hifigan:
+  checkpoint: null  # Path to pretrained HiFi-GAN checkpoint
+  use_hifigan: true  # Set to true to use HiFi-GAN instead of Griffin-Lim

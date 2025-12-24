@@ -1,53 +1,11 @@
 """
 Complete Tacotron Model for German TTS
+Updated to pass mel_lengths for proper masking
 """
 import torch
 import torch.nn as nn
 from .encoder import Encoder
 from .decoder import Decoder
-
-class Postnet(nn.Module):
-    """
-    Post-processing network to refine mel spectrograms
-    """
-    def __init__(self, n_mels=80, postnet_dim=512, num_layers=5, 
-                 kernel_size=5, dropout=0.5):
-        super().__init__()
-        
-        layers = []
-        for i in range(num_layers):
-            in_channels = n_mels if i == 0 else postnet_dim
-            out_channels = n_mels if i == num_layers - 1 else postnet_dim
-            
-            layers.extend([
-                nn.Conv1d(
-                    in_channels,
-                    out_channels,
-                    kernel_size=kernel_size,
-                    padding=(kernel_size - 1) // 2
-                ),
-                nn.BatchNorm1d(out_channels)
-            ])
-            
-            if i < num_layers - 1:
-                layers.append(nn.Tanh())
-                layers.append(nn.Dropout(dropout))
-        
-        self.convolutions = nn.Sequential(*layers)
-    
-    def forward(self, x):
-        """
-        Args:
-            x: (batch, time, n_mels)
-        Returns:
-            (batch, time, n_mels)
-        """
-        # Conv expects (batch, channels, time)
-        x = x.transpose(1, 2)
-        x = self.convolutions(x)
-        x = x.transpose(1, 2)
-        return x
-
 
 class Tacotron(nn.Module):
     def __init__(self, config):
@@ -86,7 +44,7 @@ class Tacotron(nn.Module):
             dropout=config['dropout']
         )
     
-    def forward(self, text_sequences, text_lengths, mel_targets):
+    def forward(self, text_sequences, text_lengths, mel_targets, mel_lengths):
         """
         Training forward pass
         
@@ -94,6 +52,7 @@ class Tacotron(nn.Module):
             text_sequences: (batch, max_text_len)
             text_lengths: (batch,)
             mel_targets: (batch, max_mel_len, n_mels)
+            mel_lengths: (batch,) - NEW: for proper masking
         
         Returns:
             mel_outputs_before: (batch, max_mel_len, n_mels)
@@ -104,9 +63,9 @@ class Tacotron(nn.Module):
         # Encode text
         memory = self.encoder(text_sequences, text_lengths)
         
-        # Decode to mel
+        # Decode to mel (now passes mel_lengths for masking)
         mel_outputs, stop_tokens, alignments = self.decoder(
-            memory, mel_targets, text_lengths
+            memory, mel_targets, text_lengths, mel_lengths
         )
         
         # Post-process
@@ -115,13 +74,14 @@ class Tacotron(nn.Module):
         
         return mel_outputs, mel_outputs_postnet, stop_tokens, alignments
     
-    def inference(self, text_sequences, max_len=1000):
+    def inference(self, text_sequences, max_len=1000, stop_threshold=0.5):
         """
         Inference (generate speech)
         
         Args:
             text_sequences: (batch, max_text_len)
             max_len: Maximum mel length to generate
+            stop_threshold: Stop token probability threshold (0.0-1.0)
         
         Returns:
             mel_outputs: (batch, mel_len, n_mels)
@@ -131,8 +91,10 @@ class Tacotron(nn.Module):
         text_lengths = torch.tensor([text_sequences.size(1)] * text_sequences.size(0))
         memory = self.encoder(text_sequences, text_lengths)
         
-        # Decode
-        mel_outputs, alignments = self.decoder.inference(memory, max_len)
+        # Decode (with stop token control)
+        mel_outputs, alignments = self.decoder.inference(
+            memory, max_len=max_len, stop_threshold=stop_threshold
+        )
         
         # Post-process
         mel_outputs_postnet = self.postnet(mel_outputs)
@@ -140,6 +102,45 @@ class Tacotron(nn.Module):
         
         return mel_outputs, alignments
 
-
-
-
+class Postnet(nn.Module):
+    """
+    Post-processing network to refine mel spectrograms
+    Stack of convolutions with residual connection
+    """
+    def __init__(self, n_mels=80, postnet_dim=512, num_layers=5, 
+                 kernel_size=5, dropout=0.5):
+        super().__init__()
+        
+        layers = []
+        for i in range(num_layers):
+            in_channels = n_mels if i == 0 else postnet_dim
+            out_channels = n_mels if i == num_layers - 1 else postnet_dim
+            
+            layers.extend([
+                nn.Conv1d(
+                    in_channels,
+                    out_channels,
+                    kernel_size=kernel_size,
+                    padding=(kernel_size - 1) // 2
+                ),
+                nn.BatchNorm1d(out_channels)
+            ])
+            
+            if i < num_layers - 1:
+                layers.append(nn.Tanh())
+                layers.append(nn.Dropout(dropout))
+        
+        self.convolutions = nn.Sequential(*layers)
+    
+    def forward(self, x):
+        """
+        Args:
+            x: (batch, time, n_mels)
+        Returns:
+            (batch, time, n_mels)
+        """
+        # Conv expects (batch, channels, time)
+        x = x.transpose(1, 2)
+        x = self.convolutions(x)
+        x = x.transpose(1, 2)
+        return x

@@ -8,3 +8,5 @@ PyYAML>=6.0
 tqdm>=4.65.0
 matplotlib>=3.7.0
 tensorboard>=2.13.0
+# Optional: for HiFi-GAN vocoder training
+torch_stft>=0.1.4
